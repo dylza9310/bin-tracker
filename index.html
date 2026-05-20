@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bin Night Schedule</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #1a1a2e;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .card {
+    background: #f5f0e8;
+    border-radius: 24px;
+    padding: 36px 32px 40px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  }
+
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    border-bottom: 2px solid #1a1a2e;
+    padding-bottom: 20px;
+  }
+
+  .bin-icon { font-size: 36px; line-height: 1; }
+
+  .header-text h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #1a1a2e;
+    line-height: 1.1;
+  }
+
+  .header-text p { font-size: 13px; color: #666; margin-top: 3px; }
+
+  .week {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 0;
+    border-bottom: 1px solid #ddd6c8;
+  }
+
+  .week:last-of-type { border-bottom: none; }
+
+  .week.tonight {
+    background: #1a1a2e;
+    border-radius: 14px;
+    padding: 16px;
+    margin: 0 -4px;
+    border-bottom: none;
+  }
+
+  .week.past { opacity: 0.35; }
+
+  .date-col { min-width: 90px; }
+
+  .date-day {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #888;
+  }
+
+  .tonight .date-day { color: #aaa; }
+
+  .date-num {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #1a1a2e;
+    line-height: 1.1;
+  }
+
+  .tonight .date-num { color: #f5f0e8; }
+
+  .date-month { font-size: 12px; color: #999; font-weight: 500; }
+  .tonight .date-month { color: #aaa; }
+
+  .bins { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .bin {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 30px;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .bin .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+  .bin.green { background: #d4edda; color: #1a5c2a; }
+  .bin.green .dot { background: #28a745; }
+  .bin.brown { background: #e8d5c4; color: #5c3010; }
+  .bin.brown .dot { background: #8b4513; }
+  .bin.black { background: #2d2d2d; color: #e0e0e0; }
+  .bin.black .dot { background: #777; }
+
+  .tonight .bin.green { background: rgba(40,167,69,0.25); color: #7dd99a; }
+  .tonight .bin.brown { background: rgba(139,69,19,0.3); color: #d4956a; }
+  .tonight .bin.black { background: rgba(255,255,255,0.1); color: #ccc; }
+
+  .tonight-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: #f5f0e8;
+    color: #1a1a2e;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-bottom: 6px;
+  }
+
+  .next-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background: #1a1a2e;
+    color: #f5f0e8;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-bottom: 6px;
+  }
+
+  .legend {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 2px solid #1a1a2e;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #555;
+    font-weight: 500;
+  }
+
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+  .footer-note { margin-top: 10px; font-size: 11px; color: #999; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="header">
+    <div class="bin-icon">🗑️</div>
+    <div class="header-text">
+      <h1>Bin Night<br>Schedule</h1>
+      <p>Put out the night before collection</p>
+    </div>
+  </div>
+
+  <div id="weeks"></div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#28a745"></div>Green – recycling</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#8b4513"></div>Brown – garden/food</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#777"></div>Black – general waste</div>
+  </div>
+  <div class="footer-note">Green + Brown alternate with Black every week</div>
+</div>
+
+<script>
+  // Anchor: 20 May 2026 = green+brown week (week index 0)
+  const ANCHOR = new Date(2026, 4, 20); // month is 0-indexed
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  function getWeekIndex(date) {
+    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+    const anchorMonday = new Date(ANCHOR);
+    return Math.floor((date - anchorMonday) / msPerWeek);
+  }
+
+  function isGreenBrown(weekIndex) {
+    return weekIndex % 2 === 0;
+  }
+
+  function renderBins(greenBrown) {
+    if (greenBrown) {
+      return `<div class="bin green"><div class="dot"></div>Green</div>
+              <div class="bin brown"><div class="dot"></div>Brown</div>`;
+    } else {
+      return `<div class="bin black"><div class="dot"></div>Black</div>`;
+    }
+  }
+
+  function render() {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const todayWeekIdx = getWeekIndex(today);
+    const container = document.getElementById('weeks');
+    container.innerHTML = '';
+
+    // Show 8 weeks: up to 1 past week + 7 upcoming
+    for (let i = -1; i < 7; i++) {
+      const weekIdx = todayWeekIdx + i;
+      const weekDate = new Date(ANCHOR.getTime() + weekIdx * 7 * 24 * 60 * 60 * 1000);
+      const isPast = i < 0;
+      const isTonight = i === 0;
+      const isNext = i === 1;
+
+      const dayName = DAYS[weekDate.getDay()];
+      const dateNum = weekDate.getDate();
+      const month = MONTHS[weekDate.getMonth()];
+      const gb = isGreenBrown(weekIdx);
+
+      let classes = 'week';
+      if (isTonight) classes += ' tonight';
+      if (isPast) classes += ' past';
+
+      let badge = '';
+      if (isTonight) badge = '<div class="tonight-badge">Tonight!</div>';
+      else if (isNext) badge = '<div class="next-badge">Next</div>';
+
+      container.innerHTML += `
+        <div class="${classes}">
+          <div class="date-col">
+            ${badge}
+            ${!badge ? `<div class="date-day">${dayName}</div>` : ''}
+            <div class="date-num">${dateNum} ${month}</div>
+          </div>
+          <div class="bins">${renderBins(gb)}</div>
+        </div>`;
+    }
+  }
+
+  render();
+</script>
+</body>
+</html>
