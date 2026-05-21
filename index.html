@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Bin Night Schedule</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@700;900&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<title>Household Hub</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -12,21 +12,54 @@
     background: #1a1a2e;
     min-height: 100vh;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: center;
-    padding: 24px;
+    padding: 24px 16px 48px;
     font-family: 'DM Sans', sans-serif;
   }
 
+  .app { max-width: 440px; width: 100%; }
+
+  /* ── TABS ── */
+  .tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.45);
+  }
+
+  .tab.active {
+    background: #f5f0e8;
+    color: #1a1a2e;
+  }
+
+  .tab-icon { display: block; font-size: 20px; margin-bottom: 3px; }
+
+  /* ── CARD ── */
   .card {
     background: #f5f0e8;
     border-radius: 24px;
-    padding: 36px 32px 40px;
-    max-width: 420px;
-    width: 100%;
+    padding: 32px 28px 36px;
     box-shadow: 0 30px 80px rgba(0,0,0,0.5);
   }
 
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ── BIN PANEL ── */
   .header {
     display: flex;
     align-items: center;
@@ -67,7 +100,6 @@
   }
 
   .week.past { opacity: 0.35; }
-
   .date-col { min-width: 90px; }
 
   .date-day {
@@ -90,7 +122,6 @@
   }
 
   .tonight .date-num { color: #f5f0e8; }
-
   .date-month { font-size: 12px; color: #999; font-weight: 500; }
   .tonight .date-month { color: #aaa; }
 
@@ -107,43 +138,29 @@
   }
 
   .bin .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-
   .bin.green { background: #d4edda; color: #1a5c2a; }
   .bin.green .dot { background: #28a745; }
   .bin.brown { background: #e8d5c4; color: #5c3010; }
   .bin.brown .dot { background: #8b4513; }
   .bin.black { background: #2d2d2d; color: #e0e0e0; }
   .bin.black .dot { background: #777; }
-
   .tonight .bin.green { background: rgba(40,167,69,0.25); color: #7dd99a; }
   .tonight .bin.brown { background: rgba(139,69,19,0.3); color: #d4956a; }
   .tonight .bin.black { background: rgba(255,255,255,0.1); color: #ccc; }
 
-  .tonight-badge {
+  .tonight-badge, .next-badge {
     display: inline-block;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    background: #f5f0e8;
-    color: #1a1a2e;
     padding: 2px 8px;
     border-radius: 20px;
     margin-bottom: 6px;
   }
 
-  .next-badge {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    background: #1a1a2e;
-    color: #f5f0e8;
-    padding: 2px 8px;
-    border-radius: 20px;
-    margin-bottom: 6px;
-  }
+  .tonight-badge { background: #f5f0e8; color: #1a1a2e; }
+  .next-badge { background: #1a1a2e; color: #f5f0e8; }
 
   .legend {
     margin-top: 24px;
@@ -164,13 +181,9 @@
   }
 
   .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
-
   .footer-note { margin-top: 10px; font-size: 11px; color: #999; text-align: center; }
 
-  /* WhatsApp share button */
-  .share-wrap {
-    margin-top: 20px;
-  }
+  .share-wrap { margin-top: 20px; }
 
   .share-btn {
     display: flex;
@@ -194,122 +207,479 @@
   .share-btn:hover { background: #1ebe5a; }
   .share-btn:active { transform: scale(0.98); }
 
-  .share-btn svg { flex-shrink: 0; }
+  /* ── BUDGET PANEL ── */
+  .budget-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #1a1a2e;
+  }
+
+  .budget-header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #1a1a2e;
+    line-height: 1.1;
+  }
+
+  .budget-header p { font-size: 13px; color: #666; margin-top: 3px; }
+
+  .balance-pill {
+    text-align: right;
+  }
+
+  .balance-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #888;
+  }
+
+  .balance-amount {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 900;
+    color: #1a1a2e;
+    line-height: 1;
+  }
+
+  .balance-amount.negative { color: #c0392b; }
+
+  /* Entry form */
+  .form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .form-row input, .form-row select {
+    flex: 1;
+    padding: 10px 12px;
+    border: 2px solid #ddd6c8;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    background: #fff;
+    color: #1a1a2e;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .form-row input:focus, .form-row select:focus {
+    border-color: #1a1a2e;
+  }
+
+  .form-row input.amount { max-width: 110px; flex: none; }
+
+  .type-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .type-btn {
+    flex: 1;
+    padding: 9px;
+    border: 2px solid #ddd6c8;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #fff;
+    color: #888;
+    transition: all 0.15s;
+  }
+
+  .type-btn.spend.active { background: #fde8e8; border-color: #c0392b; color: #c0392b; }
+  .type-btn.topup.active { background: #d4edda; border-color: #28a745; color: #1a5c2a; }
+
+  .add-btn {
+    width: 100%;
+    padding: 12px;
+    background: #1a1a2e;
+    color: #f5f0e8;
+    border: none;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+    margin-bottom: 20px;
+  }
+
+  .add-btn:hover { opacity: 0.85; }
+  .add-btn:active { transform: scale(0.98); }
+
+  /* Log */
+  .log-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .log-title {
+    font-family: 'Fraunces', serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: #1a1a2e;
+  }
+
+  .clear-btn {
+    font-size: 11px;
+    color: #aaa;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    padding: 2px 6px;
+  }
+
+  .clear-btn:hover { color: #c0392b; }
+
+  .log-empty {
+    text-align: center;
+    padding: 24px 0;
+    font-size: 13px;
+    color: #bbb;
+  }
+
+  .log-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd6c8;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .log-entry:last-child { border-bottom: none; }
+
+  .entry-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .entry-icon.spend { background: #fde8e8; }
+  .entry-icon.topup { background: #d4edda; }
+
+  .entry-info { flex: 1; min-width: 0; }
+
+  .entry-desc {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a2e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .entry-meta {
+    font-size: 11px;
+    color: #999;
+    margin-top: 1px;
+  }
+
+  .entry-amount {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .entry-amount.spend { color: #c0392b; }
+  .entry-amount.topup { color: #1a5c2a; }
 </style>
 </head>
 <body>
-<div class="card">
-  <div class="header">
-    <div class="bin-icon">🗑️</div>
-    <div class="header-text">
-      <h1>Bin Night<br>Schedule</h1>
-      <p>Put out the night before collection</p>
+<div class="app">
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('bins')">
+      <span class="tab-icon">🗑️</span>Bins
+    </button>
+    <button class="tab" onclick="switchTab('budget')">
+      <span class="tab-icon">💰</span>Cash Box
+    </button>
+  </div>
+
+  <div class="card">
+
+    <!-- ── BIN PANEL ── -->
+    <div class="panel active" id="panel-bins">
+      <div class="header">
+        <div class="bin-icon">🗑️</div>
+        <div class="header-text">
+          <h1>Bin Night<br>Schedule</h1>
+          <p>Put out the night before collection</p>
+        </div>
+      </div>
+      <div id="weeks"></div>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#28a745"></div>Green – recycling</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8b4513"></div>Brown – garden/food</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#777"></div>Black – general waste</div>
+      </div>
+      <div class="footer-note">Green + Brown alternate with Black every week</div>
+      <div class="share-wrap">
+        <a id="wa-btn" class="share-btn" target="_blank">
+          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
+            <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+          </svg>
+          Remind the group
+        </a>
+      </div>
     </div>
-  </div>
 
-  <div id="weeks"></div>
+    <!-- ── BUDGET PANEL ── -->
+    <div class="panel" id="panel-budget">
+      <div class="budget-header">
+        <div>
+          <h1>Cash Box</h1>
+          <p>Household expenses tracker</p>
+        </div>
+        <div class="balance-pill">
+          <div class="balance-label">Balance</div>
+          <div class="balance-amount" id="balance-display">€0.00</div>
+        </div>
+      </div>
 
-  <div class="legend">
-    <div class="legend-item"><div class="legend-dot" style="background:#28a745"></div>Green – recycling</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#8b4513"></div>Brown – garden/food</div>
-    <div class="legend-item"><div class="legend-dot" style="background:#777"></div>Black – general waste</div>
-  </div>
-  <div class="footer-note">Green + Brown alternate with Black every week</div>
+      <!-- Type toggle -->
+      <div class="type-toggle">
+        <button class="type-btn spend active" id="btn-spend" onclick="setType('spend')">− Spend</button>
+        <button class="type-btn topup" id="btn-topup" onclick="setType('topup')">+ Top Up</button>
+      </div>
 
-  <div class="share-wrap">
-    <a id="wa-btn" class="share-btn" target="_blank">
-      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white">
-        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-      </svg>
-      Remind the group
-    </a>
+      <!-- Form -->
+      <div class="form-row">
+        <input type="text" id="input-desc" placeholder="What for? (e.g. washing up liquid)" />
+      </div>
+      <div class="form-row">
+        <input type="text" id="input-name" placeholder="Who? (e.g. Sam)" />
+        <input type="number" id="input-amount" class="amount" placeholder="€0.00" min="0" step="0.01" />
+      </div>
+      <button class="add-btn" onclick="addEntry()">Add Entry</button>
+
+      <!-- Log -->
+      <div class="log-header">
+        <div class="log-title">History</div>
+        <button class="clear-btn" onclick="clearAll()">Clear all</button>
+      </div>
+      <div id="log-list"></div>
+    </div>
+
   </div>
 </div>
 
 <script>
-  const ANCHOR = new Date(2026, 4, 20);
+  // ── STATE ──
+  let entryType = 'spend';
+  let entries = [];
+
   const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const ANCHOR = new Date(2026, 4, 20);
   const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
-  function getWeekIndex(date) {
-    const msPerWeek = 7 * 24 * 60 * 60 * 1000;
-    return Math.floor((date - ANCHOR) / msPerWeek);
-  }
+  // ── GOOGLE SHEETS API ──
+  // Replace this URL after deploying your Apps Script as a Web App
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbysNFqiVqYqiP0ULYIZCN5_BQW2Jz-38dPtaCJlh2M_z4NZ01CwbWSkOkqHSrADZuABdw/exec';
 
-  function isGreenBrown(weekIndex) {
-    return weekIndex % 2 === 0;
-  }
+  const usingSheets = APPS_SCRIPT_URL !== 'https://script.google.com/macros/s/AKfycbysNFqiVqYqiP0ULYIZCN5_BQW2Jz-38dPtaCJlh2M_z4NZ01CwbWSkOkqHSrADZuABdw/exec';
 
-  function renderBins(greenBrown) {
-    if (greenBrown) {
-      return `<div class="bin green"><div class="dot"></div>Green</div>
-              <div class="bin brown"><div class="dot"></div>Brown</div>`;
-    } else {
-      return `<div class="bin black"><div class="dot"></div>Black</div>`;
+  async function loadEntries() {
+    if (!usingSheets) {
+      // Fallback to localStorage until script is deployed
+      const raw = localStorage.getItem('household-cashbox-v1');
+      entries = raw ? JSON.parse(raw) : [];
+      renderLog();
+      renderBalance();
+      return;
     }
+    setLoading(true);
+    try {
+      const res = await fetch(APPS_SCRIPT_URL);
+      const data = await res.json();
+      entries = (data.entries || []).map(e => ({
+        id: e.ID,
+        type: e.Type,
+        desc: e.Description,
+        name: e.Who,
+        amount: parseFloat(e['Amount (€)']),
+        date: e.Date
+      })).reverse();
+    } catch(e) { entries = []; }
+    setLoading(false);
+    renderLog();
+    renderBalance();
   }
 
-  function buildWhatsAppMessage(gb, dateNum, month) {
-    const bins = gb ? '🟢 Green + 🟤 Brown bins' : '⚫ Black bin';
-    return `🗑️ Bin night reminder!\n\nTonight (${dateNum} ${month}): put out the ${bins}.\n\nDon't forget to bring them back in tomorrow! ♻️`;
+  async function saveEntries(entry) {
+    if (!usingSheets) {
+      localStorage.setItem('household-cashbox-v1', JSON.stringify(entries));
+      return;
+    }
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(entry),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    } catch(e) {}
   }
 
-  function render() {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  function setLoading(on) {
+    document.getElementById('log-list').innerHTML = on
+      ? '<div class="log-empty">Loading...</div>' : '';
+  }
 
-    const todayWeekIdx = getWeekIndex(today);
+  // ── TABS ──
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['bins','budget'][i] === tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+  }
+
+  // ── BUDGET ──
+  function setType(type) {
+    entryType = type;
+    document.getElementById('btn-spend').classList.toggle('active', type === 'spend');
+    document.getElementById('btn-topup').classList.toggle('active', type === 'topup');
+  }
+
+  function addEntry() {
+    const desc = document.getElementById('input-desc').value.trim();
+    const name = document.getElementById('input-name').value.trim();
+    const amount = parseFloat(document.getElementById('input-amount').value);
+
+    if (!desc || !name || isNaN(amount) || amount <= 0) {
+      alert('Please fill in all fields with a valid amount.');
+      return;
+    }
+
+    const now = new Date();
+    const entry = {
+      id: Date.now(),
+      type: entryType,
+      desc,
+      name,
+      amount,
+      date: `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`
+    };
+
+    entries.unshift(entry);
+    saveEntries(entry);
+    renderLog();
+    renderBalance();
+
+    document.getElementById('input-desc').value = '';
+    document.getElementById('input-name').value = '';
+    document.getElementById('input-amount').value = '';
+  }
+
+  function clearAll() {
+    if (!confirm('Clear all entries? This cannot be undone.')) return;
+    entries = [];
+    if (!usingSheets) localStorage.removeItem('household-cashbox-v1');
+    renderLog();
+    renderBalance();
+  }
+
+  function renderBalance() {
+    let balance = 0;
+    entries.forEach(e => {
+      balance += e.type === 'topup' ? e.amount : -e.amount;
+    });
+    const el = document.getElementById('balance-display');
+    el.textContent = (balance < 0 ? '-' : '') + '€' + Math.abs(balance).toFixed(2);
+    el.className = 'balance-amount' + (balance < 0 ? ' negative' : '');
+  }
+
+  function renderLog() {
+    const container = document.getElementById('log-list');
+    if (entries.length === 0) {
+      container.innerHTML = '<div class="log-empty">No entries yet — add your first one above.</div>';
+      return;
+    }
+    container.innerHTML = entries.map(e => `
+      <div class="log-entry">
+        <div class="entry-icon ${e.type}">${e.type === 'topup' ? '➕' : '🛒'}</div>
+        <div class="entry-info">
+          <div class="entry-desc">${e.desc}</div>
+          <div class="entry-meta">${e.name} · ${e.date}</div>
+        </div>
+        <div class="entry-amount ${e.type}">${e.type === 'topup' ? '+' : '-'}€${e.amount.toFixed(2)}</div>
+      </div>
+    `).join('');
+  }
+
+  // ── BINS ──
+  function getWeekIndex(date) {
+    return Math.floor((date - ANCHOR) / (7 * 24 * 60 * 60 * 1000));
+  }
+
+  function isGreenBrown(wi) { return wi % 2 === 0; }
+
+  function renderBins(gb) {
+    return gb
+      ? `<div class="bin green"><div class="dot"></div>Green</div><div class="bin brown"><div class="dot"></div>Brown</div>`
+      : `<div class="bin black"><div class="dot"></div>Black</div>`;
+  }
+
+  function renderSchedule() {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const todayWI = getWeekIndex(today);
     const container = document.getElementById('weeks');
+    let tonightGB = true, tonightNum = '', tonightMonth = '';
+
     container.innerHTML = '';
-
-    let tonightGB = true;
-    let tonightDateNum = '';
-    let tonightMonth = '';
-
     for (let i = -1; i < 7; i++) {
-      const weekIdx = todayWeekIdx + i;
-      const weekDate = new Date(ANCHOR.getTime() + weekIdx * 7 * 24 * 60 * 60 * 1000);
-      const isPast = i < 0;
-      const isTonight = i === 0;
-      const isNext = i === 1;
+      const wi = todayWI + i;
+      const d = new Date(ANCHOR.getTime() + wi * 7 * 24 * 60 * 60 * 1000);
+      const gb = isGreenBrown(wi);
+      const isPast = i < 0, isTonight = i === 0, isNext = i === 1;
 
-      const dayName = DAYS[weekDate.getDay()];
-      const dateNum = weekDate.getDate();
-      const month = MONTHS[weekDate.getMonth()];
-      const gb = isGreenBrown(weekIdx);
+      if (isTonight) { tonightGB = gb; tonightNum = d.getDate(); tonightMonth = MONTHS[d.getMonth()]; }
 
-      if (isTonight) {
-        tonightGB = gb;
-        tonightDateNum = dateNum;
-        tonightMonth = month;
-      }
-
-      let classes = 'week';
-      if (isTonight) classes += ' tonight';
-      if (isPast) classes += ' past';
-
-      let badge = '';
-      if (isTonight) badge = '<div class="tonight-badge">Tonight!</div>';
-      else if (isNext) badge = '<div class="next-badge">Next</div>';
+      let cls = 'week' + (isTonight ? ' tonight' : '') + (isPast ? ' past' : '');
+      let badge = isTonight ? '<div class="tonight-badge">Tonight!</div>'
+                : isNext    ? '<div class="next-badge">Next</div>' : '';
 
       container.innerHTML += `
-        <div class="${classes}">
+        <div class="${cls}">
           <div class="date-col">
             ${badge}
-            ${!badge ? `<div class="date-day">${dayName}</div>` : ''}
-            <div class="date-num">${dateNum} ${month}</div>
+            ${!badge ? `<div class="date-day">${DAYS[d.getDay()]}</div>` : ''}
+            <div class="date-num">${d.getDate()} ${MONTHS[d.getMonth()]}</div>
           </div>
           <div class="bins">${renderBins(gb)}</div>
         </div>`;
     }
 
-    // Build WhatsApp share link
-    const msg = buildWhatsAppMessage(tonightGB, tonightDateNum, tonightMonth);
-    const encoded = encodeURIComponent(msg);
-    document.getElementById('wa-btn').href = `https://wa.me/?text=${encoded}`;
+    const bins = tonightGB ? '🟢 Green + 🟤 Brown bins' : '⚫ Black bin';
+    const msg = `🗑️ Bin night reminder!\n\nTonight (${tonightNum} ${tonightMonth}): put out the ${bins}.\n\nDon't forget to bring them back in tomorrow! ♻️`;
+    document.getElementById('wa-btn').href = `https://wa.me/?text=${encodeURIComponent(msg)}`;
   }
 
-  render();
+  // ── INIT ──
+  renderSchedule();
+  loadEntries();
 </script>
 </body>
 </html>
