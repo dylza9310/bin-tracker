@@ -406,6 +406,43 @@
 
   .entry-amount.spend { color: #c0392b; }
   .entry-amount.topup { color: #1a5c2a; }
+
+  .entry-actions { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }
+
+  .entry-action-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 3px 5px;
+    border-radius: 6px;
+    line-height: 1;
+    transition: background 0.15s;
+  }
+
+  .entry-action-btn:hover { background: rgba(0,0,0,0.08); }
+
+  .add-btn.editing { background: #28a745; }
+
+  .cancel-edit-btn {
+    width: 100%;
+    padding: 10px;
+    background: none;
+    border: 2px solid #ddd6c8;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+    margin-top: -12px;
+    margin-bottom: 20px;
+    display: none;
+    transition: border-color 0.15s;
+  }
+
+  .cancel-edit-btn.visible { display: block; }
+  .cancel-edit-btn:hover { border-color: #aaa; color: #444; }
 </style>
 </head>
 <body>
@@ -475,7 +512,8 @@
         <input type="text" id="input-name" placeholder="Who? (e.g. Sam)" />
         <input type="number" id="input-amount" class="amount" placeholder="€0.00" min="0" step="0.01" />
       </div>
-      <button class="add-btn" onclick="addEntry()">Add Entry</button>
+      <button class="add-btn" id="add-btn" onclick="addEntry()">Add Entry</button>
+      <button class="cancel-edit-btn" id="cancel-edit-btn" onclick="cancelEdit()">Cancel</button>
 
       <!-- Log -->
       <div class="log-header">
@@ -514,7 +552,7 @@
     }
     setLoading(true);
     try {
-      const res = await fetch(APPS_SCRIPT_URL);
+      const res = await fetch(APPS_SCRIPT_URL + '?action=get', { mode: 'cors' });
       const data = await res.json();
       entries = (data.entries || []).map(e => ({
         id: e.ID,
@@ -536,10 +574,13 @@
       return;
     }
     try {
+      // Apps Script requires no-cors + FormData to avoid CORS preflight
+      const form = new FormData();
+      form.append('payload', JSON.stringify(entry));
       await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        body: JSON.stringify(entry),
-        headers: { 'Content-Type': 'application/json' }
+        body: form,
+        mode: 'no-cors'
       });
     } catch(e) {}
   }
@@ -563,6 +604,8 @@
     document.getElementById('btn-topup').classList.toggle('active', type === 'topup');
   }
 
+  let editingId = null;
+
   function addEntry() {
     const desc = document.getElementById('input-desc').value.trim();
     const name = document.getElementById('input-name').value.trim();
@@ -573,21 +616,87 @@
       return;
     }
 
-    const now = new Date();
-    const entry = {
-      id: Date.now(),
-      type: entryType,
-      desc,
-      name,
-      amount,
-      date: `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`
-    };
+    if (editingId !== null) {
+      // Update existing entry
+      const idx = entries.findIndex(e => e.id === editingId);
+      if (idx !== -1) {
+        entries[idx] = { ...entries[idx], type: entryType, desc, name, amount };
+        if (!usingSheets) localStorage.setItem('household-cashbox-v1', JSON.stringify(entries));
+        syncEditToSheet(entries[idx]);
+      }
+      cancelEdit();
+    } else {
+      // New entry
+      const now = new Date();
+      const entry = {
+        id: Date.now(),
+        type: entryType,
+        desc,
+        name,
+        amount,
+        date: `${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`
+      };
+      entries.unshift(entry);
+      saveEntries(entry);
+    }
 
-    entries.unshift(entry);
-    saveEntries(entry);
     renderLog();
     renderBalance();
+    clearForm();
+  }
 
+  function editEntry(id) {
+    const e = entries.find(en => en.id === id);
+    if (!e) return;
+    editingId = id;
+    document.getElementById('input-desc').value = e.desc;
+    document.getElementById('input-name').value = e.name;
+    document.getElementById('input-amount').value = e.amount;
+    setType(e.type);
+    document.getElementById('add-btn').textContent = 'Save Changes';
+    document.getElementById('add-btn').classList.add('editing');
+    document.getElementById('cancel-edit-btn').classList.add('visible');
+    document.getElementById('input-desc').focus();
+  }
+
+  function deleteEntry(id) {
+    if (!confirm('Delete this entry?')) return;
+    entries = entries.filter(e => e.id !== id);
+    if (!usingSheets) localStorage.setItem('household-cashbox-v1', JSON.stringify(entries));
+    syncDeleteToSheet(id);
+    renderLog();
+    renderBalance();
+  }
+
+  async function syncEditToSheet(entry) {
+    if (!usingSheets) return;
+    try {
+      const form = new FormData();
+      form.append('action', 'edit');
+      form.append('payload', JSON.stringify(entry));
+      await fetch(APPS_SCRIPT_URL, { method: 'POST', body: form, mode: 'no-cors' });
+    } catch(e) {}
+  }
+
+  async function syncDeleteToSheet(id) {
+    if (!usingSheets) return;
+    try {
+      const form = new FormData();
+      form.append('action', 'delete');
+      form.append('id', id);
+      await fetch(APPS_SCRIPT_URL, { method: 'POST', body: form, mode: 'no-cors' });
+    } catch(e) {}
+  }
+
+  function cancelEdit() {
+    editingId = null;
+    document.getElementById('add-btn').textContent = 'Add Entry';
+    document.getElementById('add-btn').classList.remove('editing');
+    document.getElementById('cancel-edit-btn').classList.remove('visible');
+    clearForm();
+  }
+
+  function clearForm() {
     document.getElementById('input-desc').value = '';
     document.getElementById('input-name').value = '';
     document.getElementById('input-amount').value = '';
@@ -625,6 +734,10 @@
           <div class="entry-meta">${e.name} · ${e.date}</div>
         </div>
         <div class="entry-amount ${e.type}">${e.type === 'topup' ? '+' : '-'}€${e.amount.toFixed(2)}</div>
+        <div class="entry-actions">
+          <button class="entry-action-btn" onclick="editEntry(${e.id})" title="Edit">✏️</button>
+          <button class="entry-action-btn" onclick="deleteEntry(${e.id})" title="Delete">🗑️</button>
+        </div>
       </div>
     `).join('');
   }
