@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Household Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -552,7 +554,7 @@
     }
     setLoading(true);
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=get', { mode: 'cors' });
+      const res = await fetch(APPS_SCRIPT_URL + '?action=get', { mode: 'cors', redirect:'follow' });
       const data = await res.json();
       entries = (data.entries || []).map(e => ({
         id: e.ID,
@@ -662,7 +664,7 @@
     try {
       const url = new URL(APPS_SCRIPT_URL);
       Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-      await fetch(url.toString(), { method: 'GET', mode: 'no-cors' });
+      await fetch(url.toString(), { method: 'GET', mode: 'no-cors', redirect:'follow'});
     } catch(e) {}
   }
   async function syncEditToSheet(entry) {
