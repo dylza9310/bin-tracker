@@ -539,7 +539,7 @@
   // Replace this URL after deploying your Apps Script as a Web App
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwsH09HYEQD8bBeYxmlg8H9erywvM1RwwwJlKXxZx4GDakmzgwY3BPGKgTqLiO8Y4jvTg/exec';
 
-  const usingSheets = APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE';
+  const usingSheets = true; // URL is set, always use Sheets
 
   async function loadEntries() {
     if (!usingSheets) {
@@ -568,23 +568,12 @@
     renderBalance();
   }
 
-async function saveEntries(entry) {
+  async function saveEntries(entry) {
     if (!usingSheets) {
       localStorage.setItem('household-cashbox-v1', JSON.stringify(entries));
       return;
     }
     await postToSheet({ action: 'add', payload: JSON.stringify(entry) });
-}
-    try {
-      // Apps Script requires no-cors + FormData to avoid CORS preflight
-      const form = new FormData();
-      form.append('payload', JSON.stringify(entry));
-      await fetch(APPS_SCRIPT_URL, {
-        method: 'POST',
-        body: form,
-        mode: 'no-cors'
-      });
-    } catch(e) {}
   }
 
   function setLoading(on) {
@@ -669,34 +658,21 @@ async function saveEntries(entry) {
     renderLog();
     renderBalance();
   }
- async function postToSheet(params) {
+  async function postToSheet(params) {
     try {
       const url = new URL(APPS_SCRIPT_URL);
       Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-      console.log('Sending:', url.toString()); // ← add this
       await fetch(url.toString(), { method: 'GET', mode: 'no-cors' });
-    } catch(e) {
-      console.error('postToSheet error:', e); // ← and this
-    }
+    } catch(e) {}
   }
   async function syncEditToSheet(entry) {
     if (!usingSheets) return;
-    try {
-      const form = new FormData();
-      form.append('action', 'edit');
-      form.append('payload', JSON.stringify(entry));
-      await fetch(APPS_SCRIPT_URL, { method: 'POST', body: form, mode: 'no-cors' });
-    } catch(e) {}
+    await postToSheet({ action: 'edit', payload: JSON.stringify(entry) });
   }
 
   async function syncDeleteToSheet(id) {
     if (!usingSheets) return;
-    try {
-      const form = new FormData();
-      form.append('action', 'delete');
-      form.append('id', id);
-      await fetch(APPS_SCRIPT_URL, { method: 'POST', body: form, mode: 'no-cors' });
-    } catch(e) {}
+    await postToSheet({ action: 'delete', id });
   }
 
   function cancelEdit() {
