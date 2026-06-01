@@ -667,7 +667,16 @@
     renderLog();
     renderBalance();
   }
-
+ async function postToSheet(params) {
+    try {
+      const url = new URL(APPS_SCRIPT_URL);
+      Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+      console.log('Sending:', url.toString()); // ← add this
+      await fetch(url.toString(), { method: 'GET', mode: 'no-cors' });
+    } catch(e) {
+      console.error('postToSheet error:', e); // ← and this
+    }
+  }
   async function syncEditToSheet(entry) {
     if (!usingSheets) return;
     try {
