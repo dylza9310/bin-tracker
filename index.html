@@ -568,7 +568,7 @@
     renderBalance();
   }
 
-  async function saveEntries(entry) {
+async function saveEntries(entry) {
     if (!usingSheets) {
       localStorage.setItem('household-cashbox-v1', JSON.stringify(entries));
       return;
