@@ -539,7 +539,7 @@
   // Replace this URL after deploying your Apps Script as a Web App
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwsH09HYEQD8bBeYxmlg8H9erywvM1RwwwJlKXxZx4GDakmzgwY3BPGKgTqLiO8Y4jvTg/exec';
 
-  const usingSheets = APPS_SCRIPT_URL !== 'https://script.google.com/macros/s/AKfycbwsH09HYEQD8bBeYxmlg8H9erywvM1RwwwJlKXxZx4GDakmzgwY3BPGKgTqLiO8Y4jvTg/exec';
+  const usingSheets = APPS_SCRIPT_URL !== 'YOUR_APPS_SCRIPT_URL_HERE';
 
   async function loadEntries() {
     if (!usingSheets) {
@@ -573,6 +573,8 @@
       localStorage.setItem('household-cashbox-v1', JSON.stringify(entries));
       return;
     }
+    await postToSheet({ action: 'add', payload: JSON.stringify(entry) });
+}
     try {
       // Apps Script requires no-cors + FormData to avoid CORS preflight
       const form = new FormData();
