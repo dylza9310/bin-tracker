@@ -2,8 +2,6 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Household Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,700;0,900;1,700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -445,6 +443,179 @@
 
   .cancel-edit-btn.visible { display: block; }
   .cancel-edit-btn:hover { border-color: #aaa; color: #444; }
+
+  /* ── SUB TABS ── */
+  .sub-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .sub-tab {
+    flex: 1;
+    padding: 8px;
+    border: 2px solid #ddd6c8;
+    border-radius: 10px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: #fff;
+    color: #888;
+    transition: all 0.15s;
+  }
+
+  .sub-tab.active {
+    background: #1a1a2e;
+    border-color: #1a1a2e;
+    color: #f5f0e8;
+  }
+
+  .sub-panel { display: none; }
+  .sub-panel.active { display: block; }
+
+  /* ── LEDGER ── */
+  .ledger-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 0;
+    border-bottom: 1px solid #ddd6c8;
+  }
+
+  .ledger-card:last-child { border-bottom: none; }
+
+  .ledger-card-left { flex: 1; min-width: 0; }
+
+  .ledger-card-desc {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a2e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ledger-card-meta {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .who-chip {
+    display: inline-block;
+    background: #ede8df;
+    border-radius: 20px;
+    padding: 1px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #555;
+  }
+
+  .ledger-card-right { text-align: right; flex-shrink: 0; }
+
+  .ledger-card-amount {
+    font-family: 'Fraunces', serif;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .ledger-card-amount.debit  { color: #c0392b; }
+  .ledger-card-amount.credit { color: #1a5c2a; }
+
+  .ledger-card-balance {
+    font-size: 11px;
+    color: #999;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .ledger-card-balance.negative { color: #c0392b; }
+
+  .ledger-empty {
+    text-align: center;
+    padding: 24px 0;
+    font-size: 13px;
+    color: #bbb;
+  }
+
+  .ledger-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 2px solid #1a1a2e;
+  }
+
+  .ledger-footer-label {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .ledger-footer-balance {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 900;
+    color: #1a1a2e;
+  }
+
+  .ledger-footer-balance.negative { color: #c0392b; }
+
+  /* ── OWED SUMMARY ── */
+  .owed-section {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 2px solid #1a1a2e;
+  }
+
+  .owed-title {
+    font-family: 'Fraunces', serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+  }
+
+  .owed-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid #ddd6c8;
+  }
+
+  .owed-row:last-child { border-bottom: none; }
+
+  .owed-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: #1a1a2e;
+  }
+
+  .owed-amount {
+    font-family: 'Fraunces', serif;
+    font-size: 16px;
+    font-weight: 700;
+  }
+
+  .owed-amount.positive { color: #1a5c2a; }
+  .owed-amount.negative { color: #c0392b; }
+
+  .owed-label {
+    font-size: 11px;
+    color: #999;
+    margin-top: 1px;
+  }
 </style>
 </head>
 <body>
@@ -500,29 +671,44 @@
         </div>
       </div>
 
-      <!-- Type toggle -->
-      <div class="type-toggle">
-        <button class="type-btn spend active" id="btn-spend" onclick="setType('spend')">− Spend</button>
-        <button class="type-btn topup" id="btn-topup" onclick="setType('topup')">+ Top Up</button>
+      <!-- Sub tabs -->
+      <div class="sub-tabs">
+        <button class="sub-tab active" id="sub-tab-entry" onclick="switchSubTab('entry')">➕ Add Entry</button>
+        <button class="sub-tab" id="sub-tab-ledger" onclick="switchSubTab('ledger')">📒 Ledger</button>
       </div>
 
-      <!-- Form -->
-      <div class="form-row">
-        <input type="text" id="input-desc" placeholder="What for? (e.g. washing up liquid)" />
-      </div>
-      <div class="form-row">
-        <input type="text" id="input-name" placeholder="Who? (e.g. Sam)" />
-        <input type="number" id="input-amount" class="amount" placeholder="€0.00" min="0" step="0.01" />
-      </div>
-      <button class="add-btn" id="add-btn" onclick="addEntry()">Add Entry</button>
-      <button class="cancel-edit-btn" id="cancel-edit-btn" onclick="cancelEdit()">Cancel</button>
+      <!-- ── ENTRY SUB-PANEL ── -->
+      <div class="sub-panel active" id="sub-panel-entry">
+        <!-- Type toggle -->
+        <div class="type-toggle">
+          <button class="type-btn spend active" id="btn-spend" onclick="setType('spend')">− Spend</button>
+          <button class="type-btn topup" id="btn-topup" onclick="setType('topup')">+ Top Up</button>
+        </div>
 
-      <!-- Log -->
-      <div class="log-header">
-        <div class="log-title">History</div>
-        <button class="clear-btn" onclick="clearAll()">Clear all</button>
+        <!-- Form -->
+        <div class="form-row">
+          <input type="text" id="input-desc" placeholder="What for? (e.g. washing up liquid)" />
+        </div>
+        <div class="form-row">
+          <input type="text" id="input-name" placeholder="Who? (e.g. Sam)" />
+          <input type="number" id="input-amount" class="amount" placeholder="€0.00" min="0" step="0.01" />
+        </div>
+        <button class="add-btn" id="add-btn" onclick="addEntry()">Add Entry</button>
+        <button class="cancel-edit-btn" id="cancel-edit-btn" onclick="cancelEdit()">Cancel</button>
+
+        <!-- Log -->
+        <div class="log-header">
+          <div class="log-title">History</div>
+          <button class="clear-btn" onclick="clearAll()">Clear all</button>
+        </div>
+        <div id="log-list"></div>
       </div>
-      <div id="log-list"></div>
+
+      <!-- ── LEDGER SUB-PANEL ── -->
+      <div class="sub-panel" id="sub-panel-ledger">
+        <div id="ledger-content"></div>
+      </div>
+
     </div>
 
   </div>
@@ -554,7 +740,7 @@
     }
     setLoading(true);
     try {
-      const res = await fetch(APPS_SCRIPT_URL + '?action=get', { mode: 'cors', redirect:'follow' });
+      const res = await fetch(APPS_SCRIPT_URL + '?action=get', { mode: 'cors' });
       const data = await res.json();
       entries = (data.entries || []).map(e => ({
         id: e.ID,
@@ -664,7 +850,7 @@
     try {
       const url = new URL(APPS_SCRIPT_URL);
       Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
-      await fetch(url.toString(), { method: 'GET', mode: 'no-cors', redirect:'follow'});
+      await fetch(url.toString(), { method: 'GET', mode: 'no-cors' });
     } catch(e) {}
   }
   async function syncEditToSheet(entry) {
@@ -697,6 +883,88 @@
     if (!usingSheets) localStorage.removeItem('household-cashbox-v1');
     renderLog();
     renderBalance();
+  }
+
+  function switchSubTab(tab) {
+    document.querySelectorAll('.sub-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sub-panel').forEach(p => p.classList.remove('active'));
+    document.getElementById('sub-tab-' + tab).classList.add('active');
+    document.getElementById('sub-panel-' + tab).classList.add('active');
+    if (tab === 'ledger') renderLedger();
+  }
+
+  function renderLedger() {
+    const container = document.getElementById('ledger-content');
+    if (entries.length === 0) {
+      container.innerHTML = '<div class="ledger-empty">No entries yet.</div>';
+      return;
+    }
+
+    // Build chronological ledger (oldest first) with running balance
+    const chrono = [...entries].reverse();
+    let running = 0;
+    const rows = chrono.map(e => {
+      const isTopup = e.type === 'topup';
+      running += isTopup ? e.amount : -e.amount;
+      return { ...e, running: running };
+    });
+
+    // Running balance rows (newest on top for display)
+    const tableRows = [...rows].reverse().map(e => {
+      const isTopup = e.type === 'topup';
+      const amtClass = isTopup ? 'credit' : 'debit';
+      const amtSign  = isTopup ? '+' : '-';
+      const balClass = e.running >= 0 ? '' : ' negative';
+      const balLabel = e.running >= 0 ? `Balance: €${e.running.toFixed(2)}` : `Balance: -€${Math.abs(e.running).toFixed(2)}`;
+      return `
+        <div class="ledger-card">
+          <div class="ledger-card-left">
+            <div class="ledger-card-desc">${e.desc}</div>
+            <div class="ledger-card-meta">
+              <span class="who-chip">${e.name}</span>
+              <span>${e.date}</span>
+            </div>
+          </div>
+          <div class="ledger-card-right">
+            <div class="ledger-card-amount ${amtClass}">${amtSign}€${e.amount.toFixed(2)}</div>
+            <div class="ledger-card-balance${balClass}">${balLabel}</div>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Per-person spend summary
+    const byPerson = {};
+    entries.forEach(e => {
+      if (!byPerson[e.name]) byPerson[e.name] = 0;
+      byPerson[e.name] += e.type === 'topup' ? e.amount : -e.amount;
+    });
+
+    const owedRows = Object.entries(byPerson).map(([name, net]) => {
+      const cls = net >= 0 ? 'positive' : 'negative';
+      const label = net >= 0 ? 'contributed more than spent' : 'spent more than contributed';
+      return `
+        <div class="owed-row">
+          <div>
+            <div class="owed-name">${name}</div>
+            <div class="owed-label">${label}</div>
+          </div>
+          <div class="owed-amount ${cls}">${net >= 0 ? '+' : '-'}€${Math.abs(net).toFixed(2)}</div>
+        </div>`;
+    }).join('');
+
+    const finalBalance = rows.length ? rows[rows.length - 1].running : 0;
+    const balClass = finalBalance >= 0 ? '' : ' negative';
+
+    container.innerHTML = `
+      <div>${tableRows}</div>
+      <div class="ledger-footer">
+        <div class="ledger-footer-label">Cash Box Total</div>
+        <div class="ledger-footer-balance${balClass}">€${Math.abs(finalBalance).toFixed(2)}</div>
+      </div>
+      <div class="owed-section">
+        <div class="owed-title">Per Person</div>
+        ${owedRows}
+      </div>`;
   }
 
   function renderBalance() {
