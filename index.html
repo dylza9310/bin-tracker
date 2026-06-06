@@ -475,6 +475,41 @@
   .sub-panel.active { display: block; }
 
   /* ── LEDGER ── */
+ /* ── LEDGER TOOLBAR ── */
+.ledger-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 14px;
+  align-items: center;
+}
+
+.ledger-toolbar select {
+  flex: 1;
+  padding: 9px 12px;
+  border: 2px solid #ddd6c8;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  background: #fff;
+  color: #1a1a2e;
+  outline: none;
+}
+
+.download-btn {
+  padding: 9px 14px;
+  background: #1a1a2e;
+  color: #f5f0e8;
+  border: none;
+  border-radius: 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.download-btn:hover { opacity: 0.8; }
   .ledger-card {
     display: flex;
     align-items: center;
@@ -705,10 +740,15 @@
       </div>
 
       <!-- ── LEDGER SUB-PANEL ── -->
-      <div class="sub-panel" id="sub-panel-ledger">
-        <div id="ledger-content"></div>
-      </div>
-
+<div class="sub-panel" id="sub-panel-ledger">
+  <div class="ledger-toolbar">
+    <select id="ledger-month-filter" onchange="renderLedger()">
+      <option value="all">All months</option>
+    </select>
+    <button class="download-btn" onclick="downloadLedger()">⬇ JSON</button>
+  </div>
+  <div id="ledger-content"></div>
+</div>
     </div>
 
   </div>
@@ -894,14 +934,27 @@
   }
 
   function renderLedger() {
-    const container = document.getElementById('ledger-content');
-    if (entries.length === 0) {
-      container.innerHTML = '<div class="ledger-empty">No entries yet.</div>';
-      return;
-    }
+  const container = document.getElementById('ledger-content');
 
-    // Build chronological ledger (oldest first) with running balance
-    const chrono = [...entries].reverse();
+  // Populate month filter
+  const filterEl = document.getElementById('ledger-month-filter');
+  const selectedMonth = filterEl.value;
+  const months = [...new Set(entries.map(e => e.date.slice(e.date.indexOf(' ') + 1)))];
+  filterEl.innerHTML = '<option value="all">All months</option>' +
+    months.map(m => `<option value="${m}" ${m === selectedMonth ? 'selected' : ''}>${m}</option>`).join('');
+
+  // Filter entries by selected month
+  const filtered = selectedMonth === 'all'
+    ? entries
+    : entries.filter(e => e.date.endsWith(selectedMonth));
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="ledger-empty">No entries for this month.</div>';
+    return;
+  }
+
+  // Build chronological ledger (oldest first) with running balance
+  const chrono = [...filtered].reverse();
     let running = 0;
     const rows = chrono.map(e => {
       const isTopup = e.type === 'topup';
@@ -934,7 +987,7 @@
 
     // Per-person spend summary
     const byPerson = {};
-    entries.forEach(e => {
+    filtered.forEach(e => {
       if (!byPerson[e.name]) byPerson[e.name] = 0;
       byPerson[e.name] += e.type === 'topup' ? e.amount : -e.amount;
     });
@@ -966,6 +1019,32 @@
         ${owedRows}
       </div>`;
   }
+ function downloadLedger() {
+  const filterEl = document.getElementById('ledger-month-filter');
+  const selectedMonth = filterEl.value;
+  const filtered = selectedMonth === 'all'
+    ? entries
+    : entries.filter(e => e.date.endsWith(selectedMonth));
+
+  const export_data = {
+    exported: new Date().toISOString(),
+    month: selectedMonth,
+    entries: filtered.map(e => ({
+      date: e.date,
+      description: e.desc,
+      who: e.name,
+      type: e.type,
+      amount: e.amount
+    }))
+  };
+
+  const blob = new Blob([JSON.stringify(export_data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `cashbox-${selectedMonth === 'all' ? 'all' : selectedMonth.replace(' ', '-')}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
   function renderBalance() {
     let balance = 0;
