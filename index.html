@@ -475,41 +475,6 @@
   .sub-panel.active { display: block; }
 
   /* ── LEDGER ── */
- /* ── LEDGER TOOLBAR ── */
-.ledger-toolbar {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 14px;
-  align-items: center;
-}
-
-.ledger-toolbar select {
-  flex: 1;
-  padding: 9px 12px;
-  border: 2px solid #ddd6c8;
-  border-radius: 10px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  background: #fff;
-  color: #1a1a2e;
-  outline: none;
-}
-
-.download-btn {
-  padding: 9px 14px;
-  background: #1a1a2e;
-  color: #f5f0e8;
-  border: none;
-  border-radius: 10px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: opacity 0.15s;
-}
-
-.download-btn:hover { opacity: 0.8; }
   .ledger-card {
     display: flex;
     align-items: center;
@@ -651,6 +616,50 @@
     color: #999;
     margin-top: 1px;
   }
+
+  .owed-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #ddd6c8;
+    gap: 8px;
+  }
+
+  .owed-row:last-child { border-bottom: none; }
+
+  .owed-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .payout-btn {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1.5px solid #28a745;
+    background: none;
+    color: #28a745;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .payout-btn:hover { background: #d4edda; }
+
+  .settled-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 20px;
+    background: #d4edda;
+    color: #1a5c2a;
+  }
 </style>
 </head>
 <body>
@@ -740,15 +749,10 @@
       </div>
 
       <!-- ── LEDGER SUB-PANEL ── -->
-<div class="sub-panel" id="sub-panel-ledger">
-  <div class="ledger-toolbar">
-    <select id="ledger-month-filter" onchange="renderLedger()">
-      <option value="all">All months</option>
-    </select>
-    <button class="download-btn" onclick="downloadLedger()">⬇ JSON</button>
-  </div>
-  <div id="ledger-content"></div>
-</div>
+      <div class="sub-panel" id="sub-panel-ledger">
+        <div id="ledger-content"></div>
+      </div>
+
     </div>
 
   </div>
@@ -824,6 +828,30 @@
   }
 
   let editingId = null;
+  let payouts = {}; // tracks last payout date per person
+
+  function markPaidOut(name, amount) {
+    if (!confirm(`Mark ${name} as paid out €${amount}? Their balance will reset to €0.00.`)) return;
+    const now = new Date();
+    const dateStr = `${now.getDate()} ${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][now.getMonth()]} ${now.getFullYear()}`;
+    payouts[name] = dateStr;
+
+    // Log a settlement entry for records (doesn't affect box balance)
+    const settlementEntry = {
+      id: Date.now(),
+      type: 'settlement',
+      desc: `Settlement — ${name} paid out`,
+      name: name,
+      amount: amount,
+      date: dateStr
+    };
+    entries.unshift(settlementEntry);
+    if (!usingSheets) localStorage.setItem('household-cashbox-v1', JSON.stringify(entries));
+    saveEntries(settlementEntry);
+
+    renderLedger();
+    renderLog();
+  }
 
   function addEntry() {
     const desc = document.getElementById('input-desc').value.trim();
@@ -934,27 +962,14 @@
   }
 
   function renderLedger() {
-  const container = document.getElementById('ledger-content');
+    const container = document.getElementById('ledger-content');
+    if (entries.length === 0) {
+      container.innerHTML = '<div class="ledger-empty">No entries yet.</div>';
+      return;
+    }
 
-  // Populate month filter
-  const filterEl = document.getElementById('ledger-month-filter');
-  const selectedMonth = filterEl.value;
-  const months = [...new Set(entries.map(e => e.date.slice(e.date.indexOf(' ') + 1)))];
-  filterEl.innerHTML = '<option value="all">All months</option>' +
-    months.map(m => `<option value="${m}" ${m === selectedMonth ? 'selected' : ''}>${m}</option>`).join('');
-
-  // Filter entries by selected month
-  const filtered = selectedMonth === 'all'
-    ? entries
-    : entries.filter(e => e.date.endsWith(selectedMonth));
-
-  if (filtered.length === 0) {
-    container.innerHTML = '<div class="ledger-empty">No entries for this month.</div>';
-    return;
-  }
-
-  // Build chronological ledger (oldest first) with running balance
-  const chrono = [...filtered].reverse();
+    // Build chronological ledger (oldest first) with running balance
+    const chrono = [...entries].filter(e => e.type !== 'settlement').reverse();
     let running = 0;
     const rows = chrono.map(e => {
       const isTopup = e.type === 'topup';
@@ -985,23 +1000,56 @@
         </div>`;
     }).join('');
 
-    // Per-person spend summary
+    // Per-person spend summary — exclude top-ups (box contributions) from person list
     const byPerson = {};
-    filtered.forEach(e => {
-      if (!byPerson[e.name]) byPerson[e.name] = 0;
-      byPerson[e.name] += e.type === 'topup' ? e.amount : -e.amount;
+    entries.forEach(e => {
+      // Only track named spenders — skip generic top-ups with no person context
+      if (e.type === 'topup') return; // top-ups go to box balance only
+      if (!byPerson[e.name]) byPerson[e.name] = { spent: 0, settled: payouts[e.name] || null };
+      byPerson[e.name].spent += e.amount;
     });
 
-    const owedRows = Object.entries(byPerson).map(([name, net]) => {
-      const cls = net >= 0 ? 'positive' : 'negative';
-      const label = net >= 0 ? 'contributed more than spent' : 'spent more than contributed';
+    // Also credit any top-ups made by named people (non-box top-ups)
+    entries.forEach(e => {
+      if (e.type !== 'topup') return;
+      if (!byPerson[e.name]) byPerson[e.name] = { spent: 0, settled: payouts[e.name] || null };
+      byPerson[e.name].spent -= e.amount; // top-up reduces what they owe
+    });
+
+    const owedRows = Object.entries(byPerson).map(([name, data]) => {
+      const net = -(data.spent); // positive = they put more in, negative = they owe
+      const settledAfter = data.settled;
+
+      // Net since last payout
+      let netSincePayout = net;
+      if (settledAfter) {
+        let runAfter = 0;
+        entries.forEach(e => {
+          if (e.name !== name) return;
+          if (new Date(e.date) <= new Date(settledAfter)) return;
+          runAfter += e.type === 'topup' ? e.amount : -e.amount;
+        });
+        netSincePayout = runAfter;
+      }
+
+      const cls = netSincePayout >= 0 ? 'positive' : 'negative';
+      const label = netSincePayout >= 0 ? 'contributed more than spent' : 'owes the box';
+      const amountStr = (netSincePayout >= 0 ? '+' : '-') + '€' + Math.abs(netSincePayout).toFixed(2);
+
+      const payoutBtn = netSincePayout < 0
+        ? `<button class="payout-btn" onclick="markPaidOut('${name}', ${Math.abs(netSincePayout).toFixed(2)})">✓ Paid out</button>`
+        : `<span class="settled-badge">✓ All settled</span>`;
+
       return `
         <div class="owed-row">
           <div>
             <div class="owed-name">${name}</div>
             <div class="owed-label">${label}</div>
           </div>
-          <div class="owed-amount ${cls}">${net >= 0 ? '+' : '-'}€${Math.abs(net).toFixed(2)}</div>
+          <div class="owed-right">
+            <div class="owed-amount ${cls}">${amountStr}</div>
+            ${payoutBtn}
+          </div>
         </div>`;
     }).join('');
 
@@ -1019,36 +1067,11 @@
         ${owedRows}
       </div>`;
   }
- function downloadLedger() {
-  const filterEl = document.getElementById('ledger-month-filter');
-  const selectedMonth = filterEl.value;
-  const filtered = selectedMonth === 'all'
-    ? entries
-    : entries.filter(e => e.date.endsWith(selectedMonth));
-
-  const export_data = {
-    exported: new Date().toISOString(),
-    month: selectedMonth,
-    entries: filtered.map(e => ({
-      date: e.date,
-      description: e.desc,
-      who: e.name,
-      type: e.type,
-      amount: e.amount
-    }))
-  };
-
-  const blob = new Blob([JSON.stringify(export_data, null, 2)], { type: 'application/json' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `cashbox-${selectedMonth === 'all' ? 'all' : selectedMonth.replace(' ', '-')}.json`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
 
   function renderBalance() {
     let balance = 0;
     entries.forEach(e => {
+      if (e.type === 'settlement') return; // settlements don't affect box balance
       balance += e.type === 'topup' ? e.amount : -e.amount;
     });
     const el = document.getElementById('balance-display');
@@ -1062,7 +1085,19 @@
       container.innerHTML = '<div class="log-empty">No entries yet — add your first one above.</div>';
       return;
     }
-    container.innerHTML = entries.map(e => `
+    container.innerHTML = entries.map(e => {
+      if (e.type === 'settlement') {
+        return `
+          <div class="log-entry" style="opacity:0.6">
+            <div class="entry-icon topup">🤝</div>
+            <div class="entry-info">
+              <div class="entry-desc">${e.desc}</div>
+              <div class="entry-meta">${e.date}</div>
+            </div>
+            <div class="entry-amount topup">€${e.amount.toFixed(2)}</div>
+          </div>`;
+      }
+      return `
       <div class="log-entry">
         <div class="entry-icon ${e.type}">${e.type === 'topup' ? '➕' : '🛒'}</div>
         <div class="entry-info">
@@ -1074,8 +1109,8 @@
           <button class="entry-action-btn" onclick="editEntry(${e.id})" title="Edit">✏️</button>
           <button class="entry-action-btn" onclick="deleteEntry(${e.id})" title="Delete">🗑️</button>
         </div>
-      </div>
-    `).join('');
+      </div>`;
+    }).join('');
   }
 
   // ── BINS ──
